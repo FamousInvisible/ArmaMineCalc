@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <title>Баллистический калькулятор для миномета</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Дополнительные стили для баллистической таблицы */
+        .ballistics-table {
+            max-height: 50vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .ballistics-table table {
+            margin-bottom: 0;
+        }
+        
+        .ballistics-table th {
+            position: sticky;
+            top: 0;
+            background-color: var(--btn-primary);
+            color: var(--text-accent);
+            z-index: 10;
+        }
+        
+        .ballistics-table input {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 3px 5px;
+            width: 100%;
+        }
+        
+        .ballistics-table .table-sm td {
+            padding: 0.3rem;
+        }
+        
+        .ring-tab-content {
+            padding: 15px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .add-row-btn {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- Переключатель темы -->
+    <div class="theme-toggle" id="theme-toggle">
+        <i class="bi bi-sun"></i>
+        <span>Светлая тема</span>
+    </div>
+    
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between py-2">
+            <h1>Баллистический калькулятор для миномета</h1>
+            <button id="import-map-btn" class="btn btn-primary">Импортировать карту</button>
+        </div>
+        
+        <!-- Навигация по вкладкам -->
+        <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-pane" type="button" role="tab">Карта</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ballistics-tab" data-bs-toggle="tab" data-bs-target="#ballistics-pane" type="button" role="tab">Создание баллистической таблицы</button>
+            </li>
+        </ul>
+
+        <!-- Вкладки контента -->
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Вкладка карты -->
+            <div class="tab-pane fade show active" id="map-pane" role="tabpanel" aria-labelledby="map-tab">
+                <div id="map-container">
+                    <div id="calibration-panel" class="hidden">
+                        <div class="calibration-header">Калибровка карты</div>
+                        <div class="calibration-instruction">Кликните на две точки вдоль одного квадрата сетки</div>
+                        <div class="mb-2">
+                            <label class="form-label">Реальное расстояние (метры):</label>
+                            <input type="number" class="form-control" id="calibration-distance" min="1" value="100" required>
+                        </div>
+                        <div class="alert alert-info p-2">
+                            <strong>Длина линии:</strong> <span id="calibration-length">0</span> пикселей
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <button type="button" class="btn btn-warning btn-sm" id="redo-calibration">Перерисовать</button>
+                            <button type="button" class="btn btn-success btn-sm" id="save-calibration">Применить</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="cancel-calibration">Отмена</button>
+                        </div>
+                    </div>
+                    <div id="status-bar" class="hidden">
+                        <span>Режим: <span id="mode-indicator">Укажите миномет</span></span>
+                        <span class="ms-3">Подсказка: <span class="key-hint">ESC</span> - отменить</span>
+                    </div>
+                    <div id="loading-overlay" class="hidden">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <span class="ms-3">Загрузка карты...</span>
+                    </div>
+                    <div id="instructions">
+                        <h3>Карта не загружена</h3>
+                        <p>Для начала работы импортируйте карту</p>
+                        <button class="btn btn-lg btn-success" id="start-import">Импортировать карту</button>
+                    </div>
+                    <div id="measurements" class="hidden">
+                        <div class="measurement-header">Цели миномета:</div>
+                        <div id="measurements-list"></div>
+                    </div>
+                    <div id="context-menu" class="context-menu">
+                        <div class="context-menu-item" id="delete-point">Удалить точку</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Вкладка создания баллистической таблицы -->
+            <div class="tab-pane fade" id="ballistics-pane" role="tabpanel" aria-labelledby="ballistics-tab">
+                <div class="container mt-3">
+                    <h3><i class="bi bi-table"></i> Создание баллистической таблицы</h3>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Фракция</label>
+                            <select id="fraction-select" class="form-select">
+                                <option value="USA">USA</option>
+                                <option value="USSR">USSR</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Тип боеприпаса</label>
+                            <input type="text" id="ammo-type" class="form-control" value="HE">
+                        </div>
+                        
+                        <div class="col-md-4 mb-2 d-flex align-items-end">
+                            <button class="btn btn-success w-100" onclick="saveBallisticTable()">
+                                <i class="bi bi-save"></i> Сохранить таблицу
+                            </button>
+                        </div>
+                    </div>
+
+                    <ul class="nav nav-tabs" id="ringsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="ring0-tab" data-bs-toggle="tab" data-bs-target="#ring0" type="button" role="tab">0 Колец</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ring1-tab" data-bs-toggle="tab" data-bs-target="#ring1" type="button" role="tab">1 Кольцо (Дисперсия 23)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ring2-tab" data-bs-toggle="tab" data-bs-target="#ring2" type="button" role="tab">2 Кольца (Дисперсия 39)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ring3-tab" data-bs-toggle="tab" data-bs-target="#ring3" type="button" role="tab">3 Кольца (Дисперсия 54)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="ring4-tab" data-bs-toggle="tab" data-bs-target="#ring4" type="button" role="tab">4 Кольца (Дисперсия 69)</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content ring-tab-content">
+                        <!-- Таблица для 0 колец -->
+                        <div class="tab-pane fade show active" id="ring0" role="tabpanel" aria-labelledby="ring0-tab">
+                            <div class="ballistics-table">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Дистанция (м)</th>
+                                            <th>Угол (mil)</th>
+                                            <th>Поправка (mil/100m)</th>
+                                            <th>Время полета снаряда</th>
+                                            <th width="40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ring0">
+                                        <!-- Строки будут добавляться динамически -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary add-row-btn" onclick="addRow(0)">
+                                <i class="bi bi-plus-circle"></i> Добавить строку
+                            </button>
+                        </div>
+                        
+                        <!-- Таблица для 1 кольца -->
+                        <div class="tab-pane fade" id="ring1" role="tabpanel" aria-labelledby="ring1-tab">
+                            <div class="ballistics-table">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Дистанция (м)</th>
+                                            <th>Угол (mil)</th>
+                                            <th>Поправка (mil/100m)</th>
+                                            <th>Время полета снаряда</th>
+                                            <th width="40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ring1">
+                                        <!-- Строки будут добавляться динамически -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary add-row-btn" onclick="addRow(1)">
+                                <i class="bi bi-plus-circle"></i> Добавить строку
+                            </button>
+                        </div>
+                        
+                        <!-- Таблица для 2 колец -->
+                        <div class="tab-pane fade" id="ring2" role="tabpanel" aria-labelledby="ring2-tab">
+                            <div class="ballistics-table">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Дистанция (м)</th>
+                                            <th>Угол (mil)</th>
+                                            <th>Поправка (mil/100m)</th>
+                                            <th>Время полета снаряда</th>
+                                            <th width="40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ring2">
+                                        <!-- Строки будут добавляться динамически -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary add-row-btn" onclick="addRow(2)">
+                                <i class="bi bi-plus-circle"></i> Добавить строку
+                            </button>
+                        </div>
+                        
+                        <!-- Таблица для 3 колец -->
+                        <div class="tab-pane fade" id="ring3" role="tabpanel" aria-labelledby="ring3-tab">
+                            <div class="ballistics-table">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Дистанция (м)</th>
+                                            <th>Угол (mil)</th>
+                                            <th>Поправка (mil/100m)</th>
+                                            <th>Время полета снаряда</th>
+                                            <th width="40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ring3">
+                                        <!-- Строки будут добавляться динамически -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary add-row-btn" onclick="addRow(3)">
+                                <i class="bi bi-plus-circle"></i> Добавить строку
+                            </button>
+                        </div>
+                        
+                        <!-- Таблица для 4 колец -->
+                        <div class="tab-pane fade" id="ring4" role="tabpanel" aria-labelledby="ring4-tab">
+                            <div class="ballistics-table">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Дистанция (м)</th>
+                                            <th>Угол (mil)</th>
+                                            <th>Поправка (mil/100m)</th>
+                                            <th>Время полета снаряда</th>
+                                            <th width="40px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-ring4">
+                                        <!-- Строки будут добавляться динамически -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-sm btn-primary add-row-btn" onclick="addRow(4)">
+                                <i class="bi bi-plus-circle"></i> Добавить строку
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Импорт новой карты</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="map-import-form">
+                        <div class="mb-3">
+                            <label class="form-label">Файл карты (JPG/PNG)</label>
+                            <input type="file" class="form-control" id="map-file" accept=".jpg,.jpeg,.png" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label">Клеток по ширине (приблизительно)</label>
+                                <input type="number" class="form-control" id="cols" min="1" value="100" required>
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Клеток по высоте (приблизительно)</label>
+                                <input type="number" class="form-control" id="rows" min="1" value="100" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" id="apply-map-btn">Применить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="calibrationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Калибровка карты</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Пожалуйста, выполните калибровку:</p>
+                    <ol>
+                        <li>Кликните на начало квадрата сетки</li>
+                        <li>Кликните на конец квадрата сетки</li>
+                        <li>Введите реальное расстояние между точками в метрах</li>
+                    </ol>
+                    <div class="mb-3">
+                        <label class="form-label">Реальное расстояние (метры)</label>
+                        <input type="number" class="form-control" id="calibration-distance" min="1" value="100" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Длина линии:</strong> <span id="calibration-length">0</span> пикселей
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" id="redo-calibration">Перерисовать</button>
+                    <button type="button" class="btn btn-success" id="save-calibration">Сохранить калибровку</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    <script>
+        // Функции для работы с баллистической таблицей
+        function addRow(ring) {
+            const table = document.querySelector(`#table-ring${ring} tbody`) || 
+                        document.querySelector(`#table-ring${ring}`);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="number" class="form-control form-control-sm range-input" step="0.1"></td>
+                <td><input type="number" class="form-control form-control-sm elev-input" step="0.1"></td>
+                <td><input type="number" class="form-control form-control-sm corr-input" step="0.1"></td>
+                <td><input type="number" class="form-control form-control-sm flight-input" step="0.1"></td>
+                <td><button class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+            `;
+            
+            table.appendChild(row);
+        }
+
+        function saveBallisticTable() {
+            const data = {
+                fraction: document.getElementById('fraction-select').value,
+                ammoType: document.getElementById('ammo-type').value,
+                elevationData: {}
+            };
+
+            // Сбор данных для всех колец (0-4)
+            for (let ring = 0; ring <= 4; ring++) {
+                data.elevationData[ring] = [];
+                
+                document.querySelectorAll(`#table-ring${ring} tr`).forEach(row => {
+                    const rangeInput = row.querySelector('.range-input');
+                    const elevInput = row.querySelector('.elev-input');
+                    const corrInput = row.querySelector('.corr-input');
+                    const flightInput = row.querySelector('.flight-input');
+                    
+                    if (rangeInput && elevInput && corrInput && flightInput &&
+                        rangeInput.value && elevInput.value && corrInput.value && flightInput.value) {
+                        data.elevationData[ring].push({
+                            range: parseFloat(rangeInput.value),
+                            elevation: parseFloat(elevInput.value),
+                            correction: parseFloat(corrInput.value),
+                            flight: parseFloat(flightInput.value)
+                        });
+                    }
+                });
+            }
+
+            // Создание и скачивание JSON-файла
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ballistic_table_${data.fraction}_${data.ammoType}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+        }
+
+        // Инициализация таблиц при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            for (let ring = 0; ring <= 4; ring++) {
+                // Добавляем по 5 пустых строк в каждую таблицу
+                for (let i = 0; i < 5; i++) {
+                    addRow(ring);
+                }
+            }
+            
+            // Обновление размера карты при переключении вкладок
+            document.getElementById('mainTabs').addEventListener('shown.bs.tab', function (event) {
+                if (event.target.id === 'map-tab' && window.map) {
+                    setTimeout(() => {
+                        map.updateSize();
+                    }, 100);
+                }
+            });
+        });
+    </script>
+    <script src="main.js"></script>
+</body>
+</html>
