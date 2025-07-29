@@ -375,3 +375,47 @@
         .calibration-instruction {
             margin-bottom: 10px;
         }
+        
+                .ballistics-table {
+            max-height: 50vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .ballistics-table table {
+            margin-bottom: 0;
+        }
+        
+        .ballistics-table th {
+            position: sticky;
+            top: 0;
+            background-color: var(--btn-primary);
+            color: var(--text-accent);
+            z-index: 10;
+        }
+        
+        .ballistics-table input {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 3px 5px;
+            width: 100%;
+        }
+        
+        .ballistics-table .table-sm td {
+            padding: 0.3rem;
+        }
+        
+        .ring-tab-content {
+            padding: 15px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .add-row-btn {
+            margin-top: 10px;
+        }
