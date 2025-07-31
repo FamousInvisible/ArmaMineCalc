@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -9,26 +10,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body data-theme="dark">
     <!-- Переключатель темы -->
     <div class="theme-toggle" id="theme-toggle">
         <i class="bi bi-sun"></i>
         <span>Светлая тема</span>
     </div>
-    
+
     <div class="container-fluid">
         <div class="d-flex justify-content-between py-2">
             <h1>Баллистический калькулятор для миномета</h1>
             <button id="import-map-btn" class="btn btn-primary">Импортировать карту</button>
+            <button id="importBallisticTable" class="btn btn-control">
+                <i class="fas fa-file-import"></i> Импорт баллистической таблицы
+            </button>
         </div>
-        
+
         <!-- Навигация по вкладкам -->
         <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-pane" type="button" role="tab">Карта</button>
+                <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-pane"
+                    type="button" role="tab">Карта</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ballistics-tab" data-bs-toggle="tab" data-bs-target="#ballistics-pane" type="button" role="tab">Создание баллистической таблицы</button>
+                <button class="nav-link" id="ballistics-tab" data-bs-toggle="tab" data-bs-target="#ballistics-pane"
+                    type="button" role="tab">Создание баллистической таблицы</button>
             </li>
         </ul>
 
@@ -42,15 +49,19 @@
                         <div class="calibration-instruction">Кликните на две точки вдоль одного квадрата сетки</div>
                         <div class="mb-2">
                             <label class="form-label">Реальное расстояние (метры):</label>
-                            <input type="number" class="form-control" id="calibration-distance" min="1" value="100" required>
+                            <input type="number" class="form-control" id="calibration-distance" min="1" value="100"
+                                required>
                         </div>
                         <div class="alert alert-info p-2">
                             <strong>Длина линии:</strong> <span id="calibration-length">0</span> пикселей
                         </div>
                         <div class="d-flex justify-content-between mt-2">
-                            <button type="button" class="btn btn-warning btn-sm" id="redo-calibration">Перерисовать</button>
-                            <button type="button" class="btn btn-success btn-sm" id="save-calibration">Применить</button>
-                            <button type="button" class="btn btn-secondary btn-sm" id="cancel-calibration">Отмена</button>
+                            <button type="button" class="btn btn-warning btn-sm"
+                                id="redo-calibration">Перерисовать</button>
+                            <button type="button" class="btn btn-success btn-sm"
+                                id="save-calibration">Применить</button>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                id="cancel-calibration">Отмена</button>
                         </div>
                     </div>
                     <div id="status-bar" class="hidden">
@@ -77,12 +88,12 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Вкладка создания баллистической таблицы -->
             <div class="tab-pane fade" id="ballistics-pane" role="tabpanel" aria-labelledby="ballistics-tab">
                 <div class="container mt-3">
                     <h3><i class="bi bi-table"></i> Создание баллистической таблицы</h3>
-                    
+
                     <div class="row mb-4">
                         <div class="col-md-4 mb-2">
                             <label class="form-label">Фракция</label>
@@ -91,12 +102,12 @@
                                 <option value="USSR">USSR</option>
                             </select>
                         </div>
-                        
+
                         <div class="col-md-4 mb-2">
                             <label class="form-label">Тип боеприпаса</label>
                             <input type="text" id="ammo-type" class="form-control" value="HE">
                         </div>
-                        
+
                         <div class="col-md-4 mb-2 d-flex align-items-end">
                             <button class="btn btn-success w-100" onclick="saveBallisticTable()">
                                 <i class="bi bi-save"></i> Сохранить таблицу
@@ -106,19 +117,24 @@
 
                     <ul class="nav nav-tabs" id="ringsTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="ring0-tab" data-bs-toggle="tab" data-bs-target="#ring0" type="button" role="tab">0 Колец</button>
+                            <button class="nav-link active" id="ring0-tab" data-bs-toggle="tab" data-bs-target="#ring0"
+                                type="button" role="tab">0 Колец</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="ring1-tab" data-bs-toggle="tab" data-bs-target="#ring1" type="button" role="tab">1 Кольцо (Дисперсия 23)</button>
+                            <button class="nav-link" id="ring1-tab" data-bs-toggle="tab" data-bs-target="#ring1"
+                                type="button" role="tab">1 Кольцо (Дисперсия 23)</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="ring2-tab" data-bs-toggle="tab" data-bs-target="#ring2" type="button" role="tab">2 Кольца (Дисперсия 39)</button>
+                            <button class="nav-link" id="ring2-tab" data-bs-toggle="tab" data-bs-target="#ring2"
+                                type="button" role="tab">2 Кольца (Дисперсия 39)</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="ring3-tab" data-bs-toggle="tab" data-bs-target="#ring3" type="button" role="tab">3 Кольца (Дисперсия 54)</button>
+                            <button class="nav-link" id="ring3-tab" data-bs-toggle="tab" data-bs-target="#ring3"
+                                type="button" role="tab">3 Кольца (Дисперсия 54)</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="ring4-tab" data-bs-toggle="tab" data-bs-target="#ring4" type="button" role="tab">4 Кольца (Дисперсия 69)</button>
+                            <button class="nav-link" id="ring4-tab" data-bs-toggle="tab" data-bs-target="#ring4"
+                                type="button" role="tab">4 Кольца (Дисперсия 69)</button>
                         </li>
                     </ul>
 
@@ -145,7 +161,7 @@
                                 <i class="bi bi-plus-circle"></i> Добавить строку
                             </button>
                         </div>
-                        
+
                         <!-- Таблица для 1 кольца -->
                         <div class="tab-pane fade" id="ring1" role="tabpanel" aria-labelledby="ring1-tab">
                             <div class="ballistics-table">
@@ -168,7 +184,7 @@
                                 <i class="bi bi-plus-circle"></i> Добавить строку
                             </button>
                         </div>
-                        
+
                         <!-- Таблица для 2 колец -->
                         <div class="tab-pane fade" id="ring2" role="tabpanel" aria-labelledby="ring2-tab">
                             <div class="ballistics-table">
@@ -191,7 +207,7 @@
                                 <i class="bi bi-plus-circle"></i> Добавить строку
                             </button>
                         </div>
-                        
+
                         <!-- Таблица для 3 колец -->
                         <div class="tab-pane fade" id="ring3" role="tabpanel" aria-labelledby="ring3-tab">
                             <div class="ballistics-table">
@@ -214,7 +230,7 @@
                                 <i class="bi bi-plus-circle"></i> Добавить строку
                             </button>
                         </div>
-                        
+
                         <!-- Таблица для 4 колец -->
                         <div class="tab-pane fade" id="ring4" role="tabpanel" aria-labelledby="ring4-tab">
                             <div class="ballistics-table">
@@ -292,7 +308,8 @@
                     </ol>
                     <div class="mb-3">
                         <label class="form-label">Реальное расстояние (метры)</label>
-                        <input type="number" class="form-control" id="calibration-distance" min="1" value="100" required>
+                        <input type="number" class="form-control" id="calibration-distance" min="1" value="100"
+                            required>
                     </div>
                     <div class="alert alert-info">
                         <strong>Длина линии:</strong> <span id="calibration-length">0</span> пикселей
@@ -308,7 +325,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    <script type="module" src="ballistics.js"></script>
     <script type="module" src="main.js"></script>
     <script src="table_creator.js"></script>
 </body>
+
 </html>

@@ -1,14 +1,23 @@
 import { importBallisticTable, calculateShotParameters, generateTrajectoryPoints } from './ballistics.js';
-
-// Обработчик импорта
-document.getElementById('importBallisticTable').addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => importBallisticTable(e.target.files[0]);
-    input.click();
-});
-
+document.addEventListener('DOMContentLoaded', () => {
+    // Обработчик импорта - ТОЛЬКО ПОСЛЕ ЗАГРУЗКИ DOM
+    const importBtn = document.getElementById('importBallisticTable');
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    importBallisticTable(e.target.files[0]);
+                }
+            };
+            input.click();
+        });
+    } else {
+        console.error('Кнопка импорта не найдена! Проверьте ID элемента');
+    }
+})
 // Глобальные переменные
 let map = null;
 let currentMapImageUrl = null;
